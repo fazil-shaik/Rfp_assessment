@@ -11,7 +11,6 @@ interface Vendor {
 
 export const VendorManager: React.FC = () => {
     const [vendors, setVendors] = useState<Vendor[]>([]);
-    const [loading, setLoading] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');

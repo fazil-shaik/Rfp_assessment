@@ -9,7 +9,6 @@ interface RFPDetailProps {
 export const RFPDetail: React.FC<RFPDetailProps> = ({ id, onBack }) => {
     const [rfp, setRfp] = useState<any>(null);
     const [comparison, setComparison] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
     const [comparing, setComparing] = useState(false);
 
     useEffect(() => {
@@ -22,8 +21,6 @@ export const RFPDetail: React.FC<RFPDetailProps> = ({ id, onBack }) => {
             setRfp(data);
         } catch (err) {
             console.error(err);
-        } finally {
-            setLoading(false);
         }
     };
 

@@ -67,33 +67,6 @@ const getRFP = async (req, res) => {
     }
 };
 
-const compareRFPResponses = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const rfp = await prisma.rFP.findUnique({
-            where: { id },
-            include: { responses: { include: { vendor: true } } }
-        });
-
-        if (!rfp || rfp.responses.length === 0) {
-            return res.status(400).json({ error: 'No responses to compare' });
-        }
-
-        const vendorResponses = rfp.responses.map(r => ({
-            vendorName: r.vendor.name,
-            data: r.structuredData,
-            raw: r.rawContent
-        }));
-
-        const comparison = await aiService.compareProposals(rfp.title, rfp.budget, vendorResponses);
-        res.json(comparison);
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Comparison failed' });
-    }
-}
-
 const sendRFPToVendors = async (req, res) => {
     try {
         const { id } = req.params;
@@ -147,6 +120,33 @@ const simulateVendorResponse = async (req, res) => {
         res.status(500).json({ error: 'Failed to process vendor response' });
     }
 };
+
+const compareRFPResponses = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const rfp = await prisma.rFP.findUnique({
+            where: { id },
+            include: { responses: { include: { vendor: true } } }
+        });
+
+        if (!rfp || rfp.responses.length === 0) {
+            return res.status(400).json({ error: 'No responses to compare' });
+        }
+
+        const vendorResponses = rfp.responses.map(r => ({
+            vendorName: r.vendor.name,
+            data: r.structuredData,
+            raw: r.rawContent
+        }));
+
+        const comparison = await aiService.compareProposals(rfp.title, rfp.budget, vendorResponses);
+        res.json(comparison);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Comparison failed' });
+    }
+}
 
 module.exports = {
     createRFP,

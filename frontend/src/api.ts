@@ -35,3 +35,13 @@ export const getVendors = async () => {
     const response = await api.get('/vendors');
     return response.data;
 };
+
+export const sendRFP = async (rfpId: string, vendorIds: string[]) => {
+    const response = await api.post(`/rfps/${rfpId}/send`, { vendorIds });
+    return response.data;
+};
+
+export const simulateResponse = async (rfpId: string, vendorId: string, emailBody: string) => {
+    const response = await api.post(`/rfps/${rfpId}/response`, { vendorId, emailBody });
+    return response.data;
+};

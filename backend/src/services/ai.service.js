@@ -61,7 +61,8 @@ const parseVendorResponse = async (emailBody) => {
     }
 };
 
-const prompt = `
+const compareProposals = async (rfpTitle, rfpBudget, vendorResponses) => {
+    const prompt = `
     You are a senior procurement manager. 
     Compare the following vendor proposals for the RFP: "${rfpTitle}" (Budget: ${rfpBudget}).
     
@@ -80,27 +81,28 @@ const prompt = `
     Do not include any conversational text outside the JSON object.
   `;
 
-try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let text = response.text();
 
-    // Robust JSON extraction
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-        text = jsonMatch[0];
+        // Robust JSON extraction
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            text = jsonMatch[0];
+        }
+
+        return JSON.parse(text);
+    } catch (error) {
+        console.error("Comparison Error:", error);
+        // Return a safe fallback rather than null to prevent frontend crash
+        return {
+            summary: "AI analysis failed to generate valid JSON.",
+            recommendation: "Manual Review Required",
+            reasoning: "The AI model returned an invalid response format.",
+            scores: {}
+        };
     }
-
-    return JSON.parse(text);
-} catch (error) {
-    console.error("Comparison Error:", error);
-    // Return a safe fallback rather than null to prevent frontend crash
-    return {
-        summary: "AI analysis failed to generate valid JSON.",
-        recommendation: "Manual Review Required",
-        reasoning: "The AI model returned an invalid response format.",
-        scores: {}
-    };
 };
 
 module.exports = {

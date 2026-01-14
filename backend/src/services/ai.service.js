@@ -61,9 +61,7 @@ const parseVendorResponse = async (emailBody) => {
     }
 };
 
-const compareProposals = async (rfpTitle, rfpBudget, vendorResponses) => {
-    // vendorResponses is array of { vendorName: string, data: parsedJSON, raw: string }
-    const prompt = `
+const prompt = `
     You are a senior procurement manager. 
     Compare the following vendor proposals for the RFP: "${rfpTitle}" (Budget: ${rfpBudget}).
     
@@ -71,23 +69,38 @@ const compareProposals = async (rfpTitle, rfpBudget, vendorResponses) => {
     ${JSON.stringify(vendorResponses, null, 2)}
     
     Provide a comparison summary and a recommendation.
-    Return JSON with:
-    - summary: A paragraph comparing the options.
-    - recommendation: The name of the recommended vendor.
-    - reasoning: Why you chose them.
-    - scores: An object mapping vendorName to a score (0-100).
+    Return ONLY valid JSON with the following structure:
+    {
+      "summary": "A paragraph comparing the options...",
+      "recommendation": "Vendor Name",
+      "reasoning": "Why you chose them...",
+      "scores": { "Vendor Name": 85 }
+    }
+    
+    Do not include any conversational text outside the JSON object.
   `;
 
-    try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let text = response.text();
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(text);
-    } catch (error) {
-        console.error("Comparison Error:", error);
-        return null;
+try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+
+    // Robust JSON extraction
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        text = jsonMatch[0];
     }
+
+    return JSON.parse(text);
+} catch (error) {
+    console.error("Comparison Error:", error);
+    // Return a safe fallback rather than null to prevent frontend crash
+    return {
+        summary: "AI analysis failed to generate valid JSON.",
+        recommendation: "Manual Review Required",
+        reasoning: "The AI model returned an invalid response format.",
+        scores: {}
+    };
 };
 
 module.exports = {

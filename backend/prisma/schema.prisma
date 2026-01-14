@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Vendor {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  address   String?
+  responses VendorResponse[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RFP {
+  id             String   @id @default(uuid())
+  title          String   @default("Untitled RFP")
+  rawRequest     String   // The original natural language request
+  structuredData Json?    // JSON parsed by AI: { items: [], budget, deadline, etc. }
+  status         String   @default("DRAFT") // DRAFT, OPEN, CLOSED
+  budget         String?
+  timeline       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  responses      VendorResponse[]
+}
+
+model VendorResponse {
+  id             String   @id @default(uuid())
+  rfpId          String
+  vendorId       String
+  rawContent     String   // Email body content
+  structuredData Json?    // Parsed by AI: { price, deliveryDate, terms, etc. }
+  score          Float?   // AI score
+  aiAnalysis     String?  // Summary/Recommendation text
+  createdAt      DateTime @default(now())
+  
+  rfp            RFP      @relation(fields: [rfpId], references: [id])
+  vendor         Vendor   @relation(fields: [vendorId], references: [id])
+}

@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const aiService = require('../services/ai.service');
+const emailService = require('../services/email.service');
 
 const prisma = new PrismaClient();
 
@@ -93,9 +94,65 @@ const compareRFPResponses = async (req, res) => {
     }
 }
 
+const sendRFPToVendors = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { vendorIds } = req.body; // Array of vendor IDs
+
+        const rfp = await prisma.rFP.findUnique({ where: { id } });
+        if (!rfp) return res.status(404).json({ error: 'RFP not found' });
+
+        const vendors = await prisma.vendor.findMany({
+            where: { id: { in: vendorIds } }
+        });
+
+        const results = [];
+        for (const vendor of vendors) {
+            const emailContent = `Dear ${vendor.name},\n\nWe have a new RFP: "${rfp.title}".\n\nRequirements:\n${JSON.stringify(rfp.structuredData, null, 2)}\n\nPlease reply with your proposal.\n\nThanks,\nProcurement Team`;
+
+            const previewUrl = await emailService.sendEmail(vendor.email, `RFP Invitation: ${rfp.title}`, emailContent);
+            results.push({ vendor: vendor.name, status: 'Sent', previewUrl });
+        }
+
+        res.json({ message: 'Emails sent successfully', results });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to send emails' });
+    }
+};
+
+const simulateVendorResponse = async (req, res) => {
+    try {
+        const { id } = req.params; // rfpId
+        const { vendorId, emailBody } = req.body;
+
+        // 1. Parse content with AI
+        const structuredData = await aiService.parseVendorResponse(emailBody);
+
+        // 2. Save response
+        const response = await prisma.vendorResponse.create({
+            data: {
+                rfpId: id,
+                vendorId,
+                rawContent: emailBody,
+                structuredData: structuredData || {},
+                // We could calculate a score here too if we wanted single-response scoring
+            }
+        });
+
+        res.json(response);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to process vendor response' });
+    }
+};
+
 module.exports = {
     createRFP,
     getRFPs,
     getRFP,
-    compareRFPResponses
+    compareRFPResponses,
+    sendRFPToVendors,
+    simulateVendorResponse
 };
